@@ -1,0 +1,51 @@
+name: Test tflint with custom working directory
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create Terraform files in subdirectory
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/infra/modules"
+          cat > "$GITHUB_WORKSPACE/infra/main.tf" <<'EOF'
+          terraform {
+            required_version = ">= 1.0"
+          }
+
+          variable "region" {
+            description = "AWS region"
+            type        = string
+            default     = "us-east-1"
+          }
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          working_directory: infra
+          tflint_version: latest
+          flags: '--call-module-type=all'
+
+      - name: Assert return codes are set
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          echo "PASS: action ran successfully with custom working directory"

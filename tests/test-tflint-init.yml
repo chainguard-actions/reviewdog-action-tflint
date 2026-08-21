@@ -1,0 +1,53 @@
+name: Test tflint with init enabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create Terraform files and tflint config
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tf-init"
+          cat > "$GITHUB_WORKSPACE/tf-init/main.tf" <<'EOF'
+          terraform {
+            required_version = ">= 1.0"
+          }
+          EOF
+          # Create a minimal .tflint.hcl config with no plugins (so init is a no-op)
+          cat > "$GITHUB_WORKSPACE/tf-init/.tflint.hcl" <<'EOF'
+          config {
+            call_module_type = "all"
+          }
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          working_directory: tf-init
+          tflint_version: latest
+          tflint_init: 'true'
+          tflint_config: '.tflint.hcl'
+          flags: '--call-module-type=all'
+
+      - name: Assert return codes are set
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          echo "PASS: action ran successfully with tflint_init=true"

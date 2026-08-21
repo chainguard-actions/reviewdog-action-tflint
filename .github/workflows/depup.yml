@@ -1,0 +1,33 @@
+name: depup
+
+on:
+  schedule:
+    - cron:  '14 14 * * *' # Runs at 14:14 UTC every day
+  repository_dispatch:
+    types: [depup]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reviewdog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: reviewdog/action-depup/with-pr@94a1aaf4e4923064019214b48a43276218af7ad5 # v1.6.4
+        with:
+          file: action.yml
+          version_name: REVIEWDOG_VERSION
+          repo: reviewdog/reviewdog
+          labels: "bump:minor"
+
+  tflint-ruleset-azurerm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: reviewdog/action-depup/with-pr@94a1aaf4e4923064019214b48a43276218af7ad5 # v1.6.4
+        with:
+          file: tests/init/.tflint.hcl
+          version_name: version
+          repo: terraform-linters/tflint-ruleset-azurerm
