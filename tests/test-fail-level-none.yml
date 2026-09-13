@@ -1,0 +1,43 @@
+name: Test fail_level=none always exits successfully
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          level: warning
+          fail_level: none
+          working_directory: tests/fixtures/terraform
+          tflint_version: latest
+          flags: '--call-module-type=none'
+          tflint_config: .tflint.hcl
+
+      - name: Assert action succeeded with fail_level=none
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          # With fail_level=none, reviewdog should always return 0
+          if [ "$REVIEWDOG_RC" != "0" ]; then
+            echo "FAIL: expected reviewdog-return-code=0 with fail_level=none, got $REVIEWDOG_RC"
+            exit 1
+          fi
+          echo "PASS: action succeeded with fail_level=none (tflint=$TFLINT_RC, reviewdog=$REVIEWDOG_RC)"

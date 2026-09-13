@@ -1,0 +1,38 @@
+name: Test tflint_target_dir input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          working_directory: tests/fixtures/terraform-modules
+          tflint_target_dir: modules/vpc
+          tflint_version: latest
+          flags: '--call-module-type=none'
+          tflint_config: .tflint.hcl
+
+      - name: Assert action ran with target directory
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          echo "PASS: action ran with target directory (tflint=$TFLINT_RC, reviewdog=$REVIEWDOG_RC)"
