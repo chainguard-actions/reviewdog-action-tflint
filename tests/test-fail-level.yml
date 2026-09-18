@@ -1,0 +1,42 @@
+name: Test fail_level none allows action to succeed with issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: warning
+          working_directory: tests/fixtures/tf-faillevel
+          tflint_version: latest
+          flags: '--call-module-type=all'
+
+      - name: Assert action succeeded and return codes are set
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          # With fail_level=none, reviewdog should exit 0 regardless of findings
+          if [ "$REVIEWDOG_RC" != "0" ]; then
+            echo "FAIL: expected reviewdog-return-code=0 with fail_level=none, got $REVIEWDOG_RC"
+            exit 1
+          fi
+          echo "PASS: action succeeded with fail_level=none"
