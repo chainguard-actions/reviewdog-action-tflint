@@ -1,0 +1,3 @@
+locals {
+  child = "world"
+}

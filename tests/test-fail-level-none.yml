@@ -1,0 +1,84 @@
+name: Test fail_level none - always exits 0
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up mock tools to avoid network downloads
+        run: |
+          # Create fake tflint zip using Python
+          python3 - << 'PYEOF'
+          import zipfile, stat, io, os
+          buf = io.BytesIO()
+          with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+              info = zipfile.ZipInfo('tflint')
+              info.external_attr = 0o755 << 16
+              script = (
+                  '#!/bin/bash\n'
+                  'for arg in "$@"; do\n'
+                  '  case "$arg" in\n'
+                  '    --version) echo "TFLint version 0.50.3 (fake)"; exit 0 ;;\n'
+                  '    --init) echo "Initialized (fake)"; exit 0 ;;\n'
+                  '  esac\n'
+                  'done\n'
+                  'printf \'<checkstyle version="4.3"></checkstyle>\\n\'\n'
+                  'exit 0\n'
+              )
+              z.writestr(info, script.encode())
+          with open('/tmp/fake-tflint.zip', 'wb') as f:
+              f.write(buf.getvalue())
+          print("Created /tmp/fake-tflint.zip")
+          PYEOF
+
+          # Copy fake reviewdog install script
+          cp "$GITHUB_WORKSPACE/tests/fixtures/fake-reviewdog-install.sh" /tmp/fake-reviewdog-install.sh
+          chmod +x /tmp/fake-reviewdog-install.sh
+
+          # Install mock curl on PATH
+          mkdir -p /tmp/mock-bin
+          cp "$GITHUB_WORKSPACE/tests/fixtures/mock-curl" /tmp/mock-bin/curl
+          chmod +x /tmp/mock-bin/curl
+          echo "/tmp/mock-bin" >> "$GITHUB_PATH"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: error
+          working_directory: tests/fixtures/tf-clean
+          tflint_version: latest
+          flags: '--call-module-type=none'
+
+      - name: Assert action completed and outputs are set
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          echo "PASS: both return codes are set"
+
+      - name: Assert reviewdog returned 0 with fail_level=none
+        env:
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ "$REVIEWDOG_RC" != "0" ]; then
+            echo "FAIL: expected reviewdog return code 0 with fail_level=none, got '$REVIEWDOG_RC'"
+            exit 1
+          fi
+          echo "PASS: reviewdog returned 0 with fail_level=none"

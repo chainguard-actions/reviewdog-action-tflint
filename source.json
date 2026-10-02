@@ -1,6 +1,11 @@
 {
   "owner": "reviewdog",
   "repo": "action-tflint",
-  "version": "",
-  "url": "https://github.com/reviewdog/action-tflint"
+  "version": "v1.28.0",
+  "commit_sha": "c332ae72f14fd853c08323a60383b396cc34715a",
+  "url": "https://github.com/reviewdog/action-tflint",
+  "policy_sha": "d636be7e43ef829af6e853da6b3c7566db9f72fe",
+  "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
+  "test_agent_version": "2",
+  "harden_agent_version": "2"
 }

@@ -1,0 +1,40 @@
+#!/bin/sh
+# Mock curl: intercepts tflint and reviewdog downloads, falls through to real curl for others.
+# Supports both "curl URL | sh" (stdout) and hardened "curl -o FILE URL" (file) forms.
+out=""
+prev=""
+for arg in "$@"; do
+  case "$prev" in
+    -o|--output) out="$arg" ;;
+  esac
+  prev="$arg"
+done
+
+case "$*" in
+  *api.github.com*tflint*latest*)
+    # Return a fake latest version response
+    echo '{"tag_name":"v0.50.3"}'
+    exit 0
+    ;;
+  *tflint*releases*download*.zip*|*tflint*.zip*)
+    # Serve the fake tflint zip
+    if [ -n "$out" ]; then
+      cat /tmp/fake-tflint.zip > "$out"
+    else
+      cat /tmp/fake-tflint.zip
+    fi
+    exit 0
+    ;;
+  *reviewdog*install.sh*)
+    # Serve the fake reviewdog install script
+    if [ -n "$out" ]; then
+      cat /tmp/fake-reviewdog-install.sh > "$out"
+    else
+      cat /tmp/fake-reviewdog-install.sh
+    fi
+    exit 0
+    ;;
+esac
+
+# Fall through to real curl for any other URLs
+exec /usr/bin/curl "$@"

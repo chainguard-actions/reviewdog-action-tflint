@@ -1,0 +1,89 @@
+name: Test custom tflint target directory
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up mock tools to avoid network downloads
+        run: |
+          # Create fake tflint zip using Python
+          python3 - << 'PYEOF'
+          import zipfile, stat, io, os
+          buf = io.BytesIO()
+          with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+              info = zipfile.ZipInfo('tflint')
+              info.external_attr = 0o755 << 16
+              script = (
+                  '#!/bin/bash\n'
+                  'for arg in "$@"; do\n'
+                  '  case "$arg" in\n'
+                  '    --version) echo "TFLint version 0.50.3 (fake)"; exit 0 ;;\n'
+                  '    --init) echo "Initialized (fake)"; exit 0 ;;\n'
+                  '  esac\n'
+                  'done\n'
+                  'printf \'<checkstyle version="4.3"></checkstyle>\\n\'\n'
+                  'exit 0\n'
+              )
+              z.writestr(info, script.encode())
+          with open('/tmp/fake-tflint.zip', 'wb') as f:
+              f.write(buf.getvalue())
+          print("Created /tmp/fake-tflint.zip")
+          PYEOF
+
+          # Copy fake reviewdog install script
+          cp "$GITHUB_WORKSPACE/tests/fixtures/fake-reviewdog-install.sh" /tmp/fake-reviewdog-install.sh
+          chmod +x /tmp/fake-reviewdog-install.sh
+
+          # Install mock curl on PATH
+          mkdir -p /tmp/mock-bin
+          cp "$GITHUB_WORKSPACE/tests/fixtures/mock-curl" /tmp/mock-bin/curl
+          chmod +x /tmp/mock-bin/curl
+          echo "/tmp/mock-bin" >> "$GITHUB_PATH"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          working_directory: tests/fixtures/tf-parent
+          tflint_target_dir: modules/child
+          tflint_version: latest
+          flags: '--call-module-type=none'
+
+      - name: Assert tflint-return-code is set
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          if [ -z "$TFLINT_RC" ]; then
+            echo "FAIL: tflint-return-code output is empty"
+            exit 1
+          fi
+          echo "PASS: tflint-return-code is '$TFLINT_RC'"
+
+      - name: Assert reviewdog-return-code is set
+        env:
+          REVIEWDOG_RC: ${{ steps.action.outputs.reviewdog-return-code }}
+        run: |
+          echo "reviewdog-return-code: $REVIEWDOG_RC"
+          if [ -z "$REVIEWDOG_RC" ]; then
+            echo "FAIL: reviewdog-return-code output is empty"
+            exit 1
+          fi
+          echo "PASS: reviewdog-return-code is '$REVIEWDOG_RC'"
+
+      - name: Assert tflint succeeded on target directory
+        env:
+          TFLINT_RC: ${{ steps.action.outputs.tflint-return-code }}
+        run: |
+          echo "tflint-return-code: $TFLINT_RC"
+          if [ "$TFLINT_RC" != "0" ]; then
+            echo "FAIL: expected tflint return code 0 for clean Terraform in target dir, got '$TFLINT_RC'"
+            exit 1
+          fi
+          echo "PASS: tflint returned 0 for target directory"
