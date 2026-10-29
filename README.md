@@ -6,12 +6,12 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 ## Versions
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v1.25.0 | [`v1.25.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.25.0) | [`54a5e5a`](https://github.com/reviewdog/action-tflint/commit/54a5e5aed57dcfbb4662ec548de876df33d6288d) |
-| v1.26.0 | [`v1.26.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.26.0) | [`ac21f76`](https://github.com/reviewdog/action-tflint/commit/ac21f7671251b29bbeb280ede595cb9c5b8710c7) |
-| v1.27.0 | [`v1.27.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.27.0) | [`2c3945d`](https://github.com/reviewdog/action-tflint/commit/2c3945df0a1eca41825ede1ba6b7f1b3fc95acd8) |
-| v1.28.0 | [`v1.28.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.28.0) | [`c332ae7`](https://github.com/reviewdog/action-tflint/commit/c332ae72f14fd853c08323a60383b396cc34715a) |
+| Version | Tag | Upstream commit | Hardening report |
+|---------|-----|-----------------|------------------|
+| v1.25.0 | [`v1.25.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.25.0) | [`54a5e5a`](https://github.com/reviewdog/action-tflint/commit/54a5e5aed57dcfbb4662ec548de876df33d6288d) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-tflint/blob/v1.25.0/HARDENING.md) |
+| v1.26.0 | [`v1.26.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.26.0) | [`ac21f76`](https://github.com/reviewdog/action-tflint/commit/ac21f7671251b29bbeb280ede595cb9c5b8710c7) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-tflint/blob/v1.26.0/HARDENING.md) |
+| v1.27.0 | [`v1.27.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.27.0) | [`2c3945d`](https://github.com/reviewdog/action-tflint/commit/2c3945df0a1eca41825ede1ba6b7f1b3fc95acd8) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-tflint/blob/v1.27.0/HARDENING.md) |
+| v1.28.0 | [`v1.28.0`](https://github.com/chainguard-actions/reviewdog-action-tflint/tree/v1.28.0) | [`c332ae7`](https://github.com/reviewdog/action-tflint/commit/c332ae72f14fd853c08323a60383b396cc34715a) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-tflint/blob/v1.28.0/HARDENING.md) |
 
 ## Privacy
 
