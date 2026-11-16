@@ -85,7 +85,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - run: $GITHUB_ACTION_PATH/script.sh
+    - run: '"$GITHUB_ACTION_PATH/script.sh"'
       id: tflint
       shell: bash
       env:
