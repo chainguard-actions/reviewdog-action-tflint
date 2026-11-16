@@ -66,7 +66,9 @@ echo "::group:: Installing tflint (${tflint_version}) ... https://github.com/ter
   rm -rf "${TEMP_PATH}/tflint.zip" "${TEMP_PATH}/temp-tflint"
 echo '::endgroup::'
 
-for RULESET in ${INPUT_TFLINT_RULESETS}; do
+# shellcheck disable=SC2206
+RULESETS=(${INPUT_TFLINT_RULESETS})   # same split and glob as upstream's unquoted expansion
+for RULESET in ${RULESETS[@]+"${RULESETS[@]}"}; do
   PLUGIN="tflint-ruleset-${RULESET}"
   REPOSITORY="https://github.com/terraform-linters/${PLUGIN}"
 
@@ -115,8 +117,9 @@ echo '::group:: Running tflint with reviewdog 🐶 ...'
     CHDIR_COMMAND="--chdir=${INPUT_TFLINT_TARGET_DIR}"
   fi
 
-  # shellcheck disable=SC2086
-  TFLINT_PLUGIN_DIR=${TFLINT_PLUGIN_DIR} "${TFLINT_PATH}/tflint" -c "${INPUT_TFLINT_CONFIG}" ${INPUT_FLAGS} ${CHDIR_COMMAND} --format=checkstyle \
+  # shellcheck disable=SC2206
+  TFLINT_FLAGS=(${INPUT_FLAGS})   # same split and glob as upstream's unquoted ${INPUT_FLAGS}
+  TFLINT_PLUGIN_DIR="${TFLINT_PLUGIN_DIR}" "${TFLINT_PATH}/tflint" -c "${INPUT_TFLINT_CONFIG}" ${TFLINT_FLAGS[@]+"${TFLINT_FLAGS[@]}"} ${CHDIR_COMMAND:+"$CHDIR_COMMAND"} --format=checkstyle \
     | "${REVIEWDOG_PATH}/reviewdog" -f=checkstyle \
         -name="tflint" \
         -reporter="${INPUT_REPORTER}" \
