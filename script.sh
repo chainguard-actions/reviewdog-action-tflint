@@ -45,7 +45,7 @@ echo '::group::Preparing'
 echo '::endgroup::'
 
 echo "::group::🐶 Installing reviewdog (${REVIEWDOG_VERSION}) ... https://github.com/reviewdog/reviewdog"
-  REVIEWDOG_INSTALL_SCRIPT="$(mktemp)"
+  REVIEWDOG_INSTALL_SCRIPT="${TEMP_PATH}/reviewdog-install.sh"
   curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh -o "${REVIEWDOG_INSTALL_SCRIPT}"
   sh "${REVIEWDOG_INSTALL_SCRIPT}" -b "${REVIEWDOG_PATH}" "${REVIEWDOG_VERSION}" 2>&1
   rm -f "${REVIEWDOG_INSTALL_SCRIPT}"
@@ -62,19 +62,19 @@ echo "::group:: Installing tflint (${tflint_version}) ... https://github.com/ter
   rm -rf "${TEMP_PATH}/tflint.zip" "${TEMP_PATH}/temp-tflint"
 echo '::endgroup::'
 
-if [ -n "${INPUT_TFLINT_RULESETS}" ]; then
-  while IFS= read -r -d '' RULESET; do
-    PLUGIN="tflint-ruleset-${RULESET}"
-    REPOSITORY="https://github.com/terraform-linters/${PLUGIN}"
+# shellcheck disable=SC2086,SC2206
+RULESETS=(${INPUT_TFLINT_RULESETS})   # same split and glob as upstream's unquoted expansion
+for RULESET in ${RULESETS[@]+"${RULESETS[@]}"}; do
+  PLUGIN="tflint-ruleset-${RULESET}"
+  REPOSITORY="https://github.com/terraform-linters/${PLUGIN}"
 
-    echo "::group:: Installing tflint plugin for ${RULESET} (latest) ... ${REPOSITORY}"
-      curl --silent --show-error --fail \
-        --location "${REPOSITORY}"/releases/latest/download/"${PLUGIN}"_"${os}"_"${arch}".zip \
-        --output "${PLUGIN}".zip \
-      && unzip "${PLUGIN}".zip -d "${TFLINT_PLUGIN_DIR}" && rm "${PLUGIN}".zip
-    echo '::endgroup::'
-  done < <(printf '%s' "${INPUT_TFLINT_RULESETS}" | xargs printf '%s\0')
-fi
+  echo "::group:: Installing tflint plugin for ${RULESET} (latest) ... ${REPOSITORY}"
+    curl --silent --show-error --fail \
+      --location "${REPOSITORY}"/releases/latest/download/"${PLUGIN}"_"${os}"_"${arch}".zip \
+      --output "${PLUGIN}".zip \
+    && unzip "${PLUGIN}".zip -d "${TFLINT_PLUGIN_DIR}" && rm "${PLUGIN}".zip
+  echo '::endgroup::'
+done
 
 case "${INPUT_TFLINT_INIT:-false}" in
     true)
@@ -113,13 +113,10 @@ echo '::group:: Running tflint with reviewdog 🐶 ...'
     CHDIR_COMMAND="--chdir=${INPUT_TFLINT_TARGET_DIR}"
   fi
 
-  tflint_flags=()
-  if [ -n "${INPUT_FLAGS}" ]; then
-    while IFS= read -r -d '' t; do tflint_flags+=("$t"); done \
-      < <(printf '%s' "${INPUT_FLAGS}" | xargs printf '%s\0')
-  fi
+  # shellcheck disable=SC2086,SC2206
+  TFLINT_FLAGS=(${INPUT_FLAGS})   # same split and glob as upstream's unquoted expansion
 
-  TFLINT_PLUGIN_DIR=${TFLINT_PLUGIN_DIR} "${TFLINT_PATH}/tflint" -c "${INPUT_TFLINT_CONFIG}" --format=checkstyle "${tflint_flags[@]}" ${CHDIR_COMMAND:+"${CHDIR_COMMAND}"} \
+  TFLINT_PLUGIN_DIR="${TFLINT_PLUGIN_DIR}" "${TFLINT_PATH}/tflint" -c "${INPUT_TFLINT_CONFIG}" --format=checkstyle ${TFLINT_FLAGS[@]+"${TFLINT_FLAGS[@]}"} ${CHDIR_COMMAND:+"${CHDIR_COMMAND}"} \
     | "${REVIEWDOG_PATH}/reviewdog" -f=checkstyle \
         -name="tflint" \
         -reporter="${INPUT_REPORTER}" \
